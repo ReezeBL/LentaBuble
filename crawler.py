@@ -5,6 +5,7 @@ import re
 import lxml.html
 import pandas as pd
 import logging
+import argparse
 from aiohttp import ClientSession
 
 logging.basicConfig(level=logging.INFO,
@@ -77,10 +78,9 @@ async def crawl_period(base: datetime.date, days: int, session: ClientSession):
     return data
 
 
-async def crawl():
-    period = 7
+async def crawl(date, period):
     current = datetime.date.today()
-    end_date = datetime.date(2016, 10, 4)
+    end_date = datetime.datetime.strptime(date, '%d.%m.%Y').date()
 
     data = []
     async with ClientSession() as session:
@@ -100,6 +100,12 @@ async def test():
         print(data)
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Gathers news\'s articles from Lenta.ru')
+    parser.add_argument('--date', help='Gather expiration date in format DD.MM.YYYY', required=True)
+    parser.add_argument('--period', help='Chunk period', type=int, default=7)
+
+    args = parser.parse_args()
+
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(asyncio.ensure_future(crawl()))
+    loop.run_until_complete(asyncio.ensure_future(crawl(args.date, args.period)))
     loop.close()
