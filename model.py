@@ -2,11 +2,17 @@ import pickle
 import os
 import argparse
 import pandas as pd
+import logging
 
 from sklearn.feature_extraction.text import *
 from sklearn.svm import SVC
 from sklearn.externals import joblib
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
 from stop_words import get_stop_words
+
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s %(levelname)s %(message)s')
 
 titles = ['Россия', 'Мир', 'Бывший СССР', 'Финансы',
           'Бизнес', 'Силовые структуры', 'Наука и техника', 'Культура',
@@ -16,26 +22,18 @@ titles = ['Россия', 'Мир', 'Бывший СССР', 'Финансы',
 
 def train(args):
     classifier_path = os.path.join(args.out_folder, 'classifier.clf')
-    vectorizer_path = os.path.join(args.out_folder, 'vectorizer.clf')
 
-    df = pd.read_csv(args.data)
-    data, labels = df['Data'], df['Labels']
+    df = pd.read_csv(args.data, encoding='utf-8')
 
-    if data:
-        count = len(data)
-        train_data, train_labels = data[:int(count * .75)], labels[:int(count * .75)]
-        test_data, test_labels = data[int(count * .75):], labels[int(count * .75):]
-
+    if not df.empty:
+        train_data, test_data, train_labels, test_labels = train_test_split(df['Data'], df['Labels'], test_size=.2, random_state=0)
         print('Prepared train data with length: {0}, and test data with length: {1}'.format(len(train_data),
                                                                                             len(test_data)))
+        clf = Pipeline([('vect', TfidfVectorizer(max_features=1000, stop_words=get_stop_words('ru'))),
+                       ('svm', SVC(kernel='linear'))])
 
-        vectorizer = TfidfVectorizer(max_features=1000, stop_words=get_stop_words('ru'))
-        mat = vectorizer.fit_transform(train_data)
-        mat = mat.todense()
-        clf = SVC(kernel='linear')
-        clf.fit(mat, train_labels)
-
-        score = clf.score(vectorizer.transform(test_data).todense(), test_labels)
+        clf.fit(train_data, train_labels)
+        score = clf.score(test_data, test_labels)
 
         print('Training done! Precision: {0}'.format(score))
 
@@ -48,22 +46,17 @@ def train(args):
                     os.unlink(file_path)
 
         joblib.dump(clf, classifier_path)
-        joblib.dump(vectorizer, vectorizer_path)
 
 
 def test(args):
     classifier_path = os.path.join(args.model, 'classifier.clf')
-    vectorizer_path = os.path.join(args.model, 'vectorizer.clf')
-
-    vectorizer = joblib.load(vectorizer_path)
     classifier = joblib.load(classifier_path)
 
     with open(args.file, 'r') as f:
         data = f.read()
 
     if data:
-        mat = vectorizer.transform([data, ]).todense()
-        category = classifier.predict(mat)[0]
+        category = classifier.predict([data, ])
 
         print('Decided category: {0}'.format(titles[category]))
     else:
@@ -89,7 +82,7 @@ subparsers = parser.add_subparsers(help='Run modes', dest='mode')
 
 # Train command
 train_parser = subparsers.add_parser('train', help='Trains model to recognize text theme')
-train_parser.add_argument('--data', help='File with training data', default='Articles.csv', type=str)
+train_parser.add_argument('--data', help='File with training data', default='data.csv', type=str)
 train_parser.add_argument('--out_folder', help='Folder, to store trained model', default='model', type=str)
 train_parser.set_defaults(func=train)
 

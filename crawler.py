@@ -1,10 +1,16 @@
 import asyncio
-from aiohttp import ClientSession
 import datetime
+import re
 
 import lxml.html
 import pandas as pd
-import requests
+import logging
+from aiohttp import ClientSession
+
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s %(levelname)s %(message)s')
+
+unicode = re.compile(r'[^\x00-\x7f]')
 
 url = 'https://lenta.ru/{0}'
 api_url = 'https://lenta.ru/rubrics/{rubric}/{year}/{month:02d}/{day:02d}'
@@ -32,6 +38,7 @@ async def get_article_content(article_url, session):
     tree = lxml.html.fromstring(r)
     text = tree.xpath('//div[@itemprop="articleBody"]//p/text()')
     text = ' '.join(text)
+    # text = unicode.sub('', text)
     return text
 
 
@@ -49,13 +56,13 @@ async def crawl_rubric(rubric, date, label, session):
 async def crawl_date(date, session):
     data = []
     try:
-        print('Gathering data on {0}'.format(date))
+        logging.info('Gathering data on {0}'.format(date))
         tasks = [asyncio.ensure_future(crawl_rubric(rubric, date, i, session)) for i, rubric in enumerate(rubrics)]
         results = await asyncio.gather(*tasks)
         for result in results:
             data += result
     except BaseException as e:
-        print('Error during processing data on {0}, message{1}'.format(date, e))
+        logging.error('Error during processing data on {0}, message{1}'.format(date, e))
     finally:
         return data
 
@@ -73,7 +80,7 @@ async def crawl_period(base: datetime.date, days: int, session: ClientSession):
 async def crawl():
     period = 7
     current = datetime.date.today()
-    end_date = datetime.date(2016, 7, 27)
+    end_date = datetime.date(2016, 10, 4)
 
     data = []
     async with ClientSession() as session:
@@ -82,10 +89,10 @@ async def crawl():
             data += await crawl_period(current, period, session)
             current -= datetime.timedelta(period)
 
-    print('Downloading done! Storing data')
+    logging.info('Downloading done! Storing data')
     df = pd.DataFrame(data=data, columns=['Data', 'Labels'])
-    df.to_csv('Articles.csv')
-    print('Stored {0} articles.'.format(len(data)))
+    df.to_csv('data.csv', encoding='utf-8')
+    logging.info('Stored {0} articles.'.format(len(data)))
 
 async def test():
     async with ClientSession() as session:
