@@ -1,6 +1,7 @@
 import pickle
 import os
 import argparse
+import pandas as pd
 
 from sklearn.feature_extraction.text import *
 from sklearn.svm import SVC
@@ -17,8 +18,8 @@ def train(args):
     classifier_path = os.path.join(args.out_folder, 'classifier.clf')
     vectorizer_path = os.path.join(args.out_folder, 'vectorizer.clf')
 
-    with open(args.data, 'rb') as f:
-        data, labels = pickle.load(f)
+    df = pd.read_csv(args.data)
+    data, labels = df['Data'], df['Labels']
 
     if data:
         count = len(data)
@@ -69,12 +70,26 @@ def test(args):
         print('Error during processing file!')
 
 
+def view(args):
+    with open(args.file, 'rb') as f:
+        data, _ = pickle.load(f)
+    if data:
+        c, length = 0, len(data)
+        print('Loaded {0} arcticles\r\nPrint article number to view, -1 to leave'.format(length))
+        while c != -1:
+            c = int(input())
+            if c < length:
+                print(data[c])
+            else:
+                print('Invalid argument')
+
+
 parser = argparse.ArgumentParser(description='Creates model for text corpus.')
 subparsers = parser.add_subparsers(help='Run modes', dest='mode')
 
 # Train command
 train_parser = subparsers.add_parser('train', help='Trains model to recognize text theme')
-train_parser.add_argument('--data', help='File with training data', default='data.dat', type=str)
+train_parser.add_argument('--data', help='File with training data', default='Articles.csv', type=str)
 train_parser.add_argument('--out_folder', help='Folder, to store trained model', default='model', type=str)
 train_parser.set_defaults(func=train)
 
@@ -84,6 +99,10 @@ test_parser.add_argument('--model', help='Trained model folder', default='model'
 test_parser.add_argument('--file', help='File with data to produce', required=True)
 test_parser.set_defaults(func=test)
 
+#View parser
+view_parser = subparsers.add_parser('view', help='View data')
+view_parser.add_argument('--file', help='Data file to view')
+view_parser.set_defaults(func=view)
 
 arguments = parser.parse_args()
 if arguments.mode:
