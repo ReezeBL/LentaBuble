@@ -19,7 +19,7 @@ rubrics = ['russia', 'world', 'ussr', 'economics',
            'business', 'forces', 'science', 'culture',
            'sport', 'media', 'style', 'travel', 'life'
            ]
-headers = {'user-agent':'Lenta/1.2.1 (iPhone; iOS 9.3.1; Scale/2.00)'}
+headers = {'user-agent': 'Lenta/1.2.1 (iPhone; iOS 9.3.1; Scale/2.00)'}
 
 
 async def fetch(url, session):
