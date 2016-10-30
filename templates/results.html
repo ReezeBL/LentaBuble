@@ -1,10 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+{% extends 'home.html' %}
+{% block body %}
+    {% if entries %}
+    <h2>Возможные темы:</h2>
+    <div class=entries>
+        {% for entry in entries %}
+            <li>{{ entry }}</li>
+        {% endfor %}
+    </div>
+    {% else %}
+        <h2>К сожалению, классификация не удалась</h2>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,15 @@
+<!doctype html>
+<title>Lenta Bubble</title>
+<link rel=stylesheet type=text/css href="{{ url_for('static', filename='style.css') }}">
+<div class=page>
+  <h1>Lenta Bubble</h1>
+  <div class=metanav>
+    Классификатор новостей, по версии сайта Lenta.ru
+  </div>
+  <form action="{{ url_for('classify') }}" method="post">
+      <label for="news_text">Текст вашей новости:</label><br/>
+      <textarea name="news_text">{% if text %}{{ text }}{% endif %}</textarea><br/>
+      <input type="submit" value="Отправить"><br/>
+  </form>
+  {% block body %}{% endblock %}
+</div>
